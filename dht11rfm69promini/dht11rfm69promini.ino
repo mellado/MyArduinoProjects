@@ -23,14 +23,15 @@
 #define LED           9  // Moteinos have LEDs on D9
 #define SERIAL_BAUD   9600  //must be 9600 for GPS, use whatever if no GPS
 
-#define SENDING_PERIOD 2000
+#define SENDING_PERIOD 15000
 
 typedef struct {    
-  int           nodeID;     //node ID (1xx, 2xx, 3xx);  1xx = basement, 2xx = main floor, 3xx = outside
-  int     deviceID;   //sensor ID (2, 3, 4, 5)
-  unsigned long var1_usl;     //uptime in ms
-  float         var2_float;     //sensor data?
-  float     var3_float;   //battery condition?
+  int     nodeID;     //node ID (1xx, 2xx, 3xx);  1xx = basement, 2xx = main floor, 3xx = outside
+  int     sensorID;   //sensor ID (2, 3, 4, 5)
+  unsigned long milliseconds;     //uptime in ms
+  float         temperature;     //sensor data?
+  float         humidity;
+  int     error;   // error when reading sensor
 } Payload;
 Payload theData;
 
@@ -106,19 +107,6 @@ void setup()
 //---------------------------------------------------------------------------------------------
 void loop()
 {
-  
-  //---- this is what data looks like -----
-  /*
-    theData.nodeID = 40;
-  theData.sensorID = xx;  
-                                      2 = lights sensor var1 = 0-1024, higher means more light
-                                      3 = ultrasonic  var1 = inches
-                                      4 = temperature_F/humidity  var1= degree F, var2=% humidity
-                                      5 = presence sensor var: = 1 = presence, 0=absence
-  theData.var1_usl = millis();
-        theData.var2_float = ;
-        theData.var3_float = ;
-  */
 
 
   
@@ -147,24 +135,29 @@ void loop()
     break;
   }
 
-  Serial.print("Humidity (%): ");
-  Serial.println((float)DHT11.humidity, 2);
-  Serial.print("Temperature (*C): ");
-  Serial.println((float)DHT11.temperature, 2);
+
   
   float h = (float)DHT11.humidity;
   float t = (float)DHT11.temperature;
-  float temp_F;
 
   if (isnan(t) || isnan(h)) {
     Serial.println("Failed to read from DHT");
+    chk = 1000;
   } 
 
-  //send data
-  theData.deviceID = 4;
-  theData.var1_usl = millis();
-  theData.var2_float = t;
-  theData.var3_float = h;
+
+  theData.nodeID = NODEID;
+  theData.sensorID = 1;
+  theData.milliseconds = millis();
+  theData.temperature = t;
+  theData.humidity = h;
+  theData.error = chk;
+
+  Serial.print("Humidity (%): ");
+  Serial.println(theData.humidity, 2);
+  Serial.print("Temperature (*C): ");
+  Serial.println(theData.temperature, 2);
+  
   radio.sendWithRetry(GATEWAYID, (const void*)(&theData), sizeof(theData));
 
   

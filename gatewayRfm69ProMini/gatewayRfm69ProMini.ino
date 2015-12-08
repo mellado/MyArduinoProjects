@@ -33,12 +33,13 @@ RFM69 Pinout:
 RFM69 radio;
 bool promiscuousMode = false; //set to 'true' to sniff all packets on the same network
 
-typedef struct {		
-  int                   nodeID; 
-  int			              sensorID;
-  unsigned long         var1_usl; 
-  float                 var2_float; 
-  float			            var3_float;	
+typedef struct {    
+  int     nodeID;     //node ID (1xx, 2xx, 3xx);  1xx = basement, 2xx = main floor, 3xx = outside
+  int     sensorID;   //sensor ID (2, 3, 4, 5)
+  unsigned long milliseconds;     //uptime in ms
+  float         temperature;     //sensor data?
+  float         humidity;
+  int     error;   // error when reading sensor
 } Payload;
 Payload theData;
 
@@ -49,7 +50,9 @@ void setup()
 
   //RFM69 ---------------------------
   bool init = radio.initialize(FREQUENCY,NODEID,NETWORKID);
-  Serial.println(init);
+  if (!init){
+    Serial.println("Error initializing radio.");
+  }
   #ifdef IS_RFM69HW
     radio.setHighPower(); //uncomment only for RFM69HW!
   #endif
@@ -84,11 +87,15 @@ void loop()
       Serial.print("Sensor ID: ");      
       Serial.print(theData.sensorID);
       Serial.print(", millis: ");
-      Serial.print(theData.var1_usl);
+      Serial.print(theData.milliseconds);
       Serial.print(", temperature (*C): ");
-      Serial.print(theData.var2_float);
+      Serial.print(theData.temperature);
       Serial.print(", humidity(%):");
-      Serial.print(theData.var3_float);
+      Serial.print(theData.humidity);
+      if (theData.error!=0){
+        Serial.print(", Error found: ");
+        Serial.print(theData.error);
+      }
       
       //printFloat(theData.var2_float, 5); Serial.print(", "); printFloat(theData.var3_float, 5);
       
@@ -101,10 +108,7 @@ void loop()
 	
     if (radio.ACK_REQUESTED)
     {
-      byte theNodeID = radio.SENDERID;
       radio.sendACK();
-      // Serial.println(" - ACK sent.");
-
     }//end if radio.ACK_REQESTED
     
     
